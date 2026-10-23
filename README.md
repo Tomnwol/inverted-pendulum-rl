@@ -1,16 +1,17 @@
 # Pendule inversé par apprentissage par renforcement — du gradient au PPO
 
+Comparaison des entrainements entre différente méthodes d'apprentisssage par renforcement. On compare une recherche aléatoire, la méthode REINFORCE, la méthode REINFORCE + Montecarlo, la méthode REINFORCE + Différence temporelle et enfin la PPO. 
+
+![Comparaison des entraînements](pendule/results.png)
+
+Voici le retour moyen au fil des itérations. Plus le nombre est proche de 0, mieux le pendule tient la verticale. Au-dessus de −300, il est tenu pour entraîné. On voit que la méthode **PPO domine** largement avec un **apprentissage fiable et rapide**.
+
 Objectif : apprendre à un réseau de neurones à redresser puis maintenir un
 pendule inversé à la verticale, en construisant chaque brique soi-même :
 descente de gradient et rétropropagation codées à la main, passage à PyTorch,
 puis gradient de politique (REINFORCE), acteur-critique et PPO.
 
 Chaque script est autonome et commenté (en français).
-
-```bash
-pip install -r requirements.txt
-cd pendule && python simulation_pendule.py   # démo : le pendule contrôlé par l'agent PPO
-```
 
 ## Le pendule — `pendule/`
 
@@ -26,14 +27,6 @@ récompense = −(écart angulaire² + 0,1·vitesse² + 0,001·couple²).
 | `ch5_6_baseline_critique.py` | Baseline, avantage, critique V(s) (Monte-Carlo et TD) ; mesure de la variance des estimateurs de gradient |
 | `ppo.py` | PPO : acteur-critique, GAE, ratio clippé, 16 environnements en parallèle |
 | `simulation_pendule.py` | Visualisation Tkinter d'une politique entraînée |
-
-Retour moyen sur 50 épisodes d'évaluation (plus proche de 0 = mieux) :
-
-| Politique | Retour moyen |
-|---|---|
-| Couple nul | −1234 |
-| Recherche aléatoire (ch. 3) | −399 |
-| **PPO** | **−150** |
 
 ## Les bases — `bases/`
 
