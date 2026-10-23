@@ -1,9 +1,12 @@
 #Dans cette exemple, on étudie une recherche sans gradient, juste de l'aléatoire pour tenter d'améliorer J, le retour moyen d'une politique.
 
+import sys
 from pathlib import Path
 
 import numpy as np
 from pendule_env import Pendule
+
+PALIERS = (1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 100, 150, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000)
 
 
 def evaluer_J(politique, n_episodes=20, seed=100):
@@ -43,12 +46,13 @@ if __name__ == "__main__":
     w = rng.standard_normal(DIM) * 0.1
     meilleur = evaluer_J(politique_depuis(w))
     print(f"\nessai   0 | J = {meilleur:8.1f}")
-    for essai in range(1, 15000):
+    n_essais = int(sys.argv[1]) if len(sys.argv) > 1 else 14999   # python ch3_recherche_aleatoire.py 500
+    for essai in range(1, n_essais + 1):
         candidat = w + 0.3* rng.standard_normal(DIM)         # petite perturbation aléatoire
         j = evaluer_J(politique_depuis(candidat))
         if j > meilleur:                                       # on ne garde que les améliorations
             w, meilleur = candidat, j
-        if essai % 50 == 0:
+        if essai in PALIERS:
             print(f"essai {essai:3d} | meilleur J = {meilleur:8.1f}")
 
     chemin = Path(__file__).with_name("ch3_poids.npy")

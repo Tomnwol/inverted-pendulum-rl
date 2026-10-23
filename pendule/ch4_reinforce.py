@@ -1,5 +1,8 @@
+import sys
 import time
 import numpy as np
+
+PALIERS = (1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 100, 150, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000)
 
 
 # ======================= PARTIE A : un cas minuscule =======================
@@ -75,6 +78,7 @@ def partie_B(n_iter=5000, lr=3e-3, seed=0):
 
     envs = [Pendule(seed=i + 1) for i in range(N)] # On a 16 pendules qui jouent en parallèle
     t0 = time.time()
+    print(f"iter {0:4d} | éval {evaluer():8.1f} | std action {log_std.exp().item():.2f}")
     for it in range(1, n_iter + 1): # On fait 5000 itérations
         # Etape 1) collecter des données
         obs = np.array([e.reset() for e in envs]) # on remet les pendules a des positions aleatoires
@@ -146,12 +150,15 @@ def partie_B(n_iter=5000, lr=3e-3, seed=0):
         with torch.no_grad():
             log_std.clamp_(-2.0, 0.5)
 
-        if it == 1 or it % 50 == 0:
+        if it in PALIERS:
             print(f"iter {it:4d} | retour (entraînement) {retour_moyen:8.1f} "
                   f"| éval {evaluer():8.1f} | std action {log_std.exp().item():.2f} | {time.time() - t0:3.0f}s")
 
 
 if __name__ == "__main__":
-    partie_A()
-    print("\n--- Partie B : REINFORCE sur le pendule ---")
-    partie_B()
+    if len(sys.argv) > 1:
+        partie_B(n_iter=int(sys.argv[1]))          # python ch4_reinforce.py 500
+    else:
+        partie_A()
+        print("\n--- Partie B : REINFORCE sur le pendule ---")
+        partie_B()
