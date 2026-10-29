@@ -1,0 +1,198 @@
+ST Edge AI Core v2.2.0-20266 2adc00962
+Created date          : 2026-10-29 23:44:01
+Parameters            : generate --target stm32f7 --name studentpendulum -m /home/tomnwol/Code/IA/pendule-inverse-rl/embedded/weights/student.onnx --compression none --verbosity 1 --workspace /tmp/mxAI_workspace26793206715069345020289522024580 --output /home/tomnwol/.stm32cubemx/studentpendulum_output
+
+Exec/report summary (generate)
+------------------------------------------------------------------------------------------------
+model file         :   /home/tomnwol/Code/IA/pendule-inverse-rl/embedded/weights/student.onnx   
+type               :   onnx                                                                     
+c_name             :   studentpendulum                                                          
+compression        :   none                                                                     
+options            :   allocate-inputs, allocate-outputs                                        
+optimization       :   balanced                                                                 
+target/series      :   stm32f7                                                                  
+workspace dir      :   /tmp/mxAI_workspace26793206715069345020289522024580                      
+output dir         :   /home/tomnwol/.stm32cubemx/studentpendulum_output                        
+model_fmt          :   float                                                                    
+model_name         :   student                                                                  
+model_hash         :   0x4e5f3b75917d09021c4dc2411cfc5cab                                       
+params #           :   356 items (1.39 KiB)                                                     
+------------------------------------------------------------------------------------------------
+input 1/1          :   'observation', f32(1x3), 12 Bytes, activations                           
+output 1/1         :   'torque', f32(1x1), 4 Bytes, activations                                 
+macc               :   673                                                                      
+weights (ro)       :   1,412 B (1.38 KiB) (1 segment) / -12(-0.8%) vs float model               
+activations (rw)   :   128 B (128 B) (1 segment) *                                              
+ram (total)        :   128 B (128 B) = 128 + 0 + 0                                              
+------------------------------------------------------------------------------------------------
+(*) 'input'/'output' buffers are allocated in the activations buffer
+
+Model name - student
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+m_id   layer (type,original)                                 oshape        param/size     macc                     connected to   | c_size         c_macc          c_type             
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+2      _Constant_output_0 (Placeholder, Mul)                 [b:3]         3/12                                                   | -12(-100.0%)                   
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+3      student_0_weight (Placeholder, Gemm)                  [b:16,c:3]    48/192                                                 | +64(+33.3%)    +64(+100.0%)    Dense_[0]          
+       student_0_bias (Placeholder, Gemm)                    [b:16]        16/64                                                  | -64(-100.0%)                   
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+5      student_2_weight (Placeholder, Gemm)                  [b:16,c:16]   256/1,024                                              | +64(+6.2%)     +272(+100.0%)   Dense_[2]          
+       student_2_bias (Placeholder, Gemm)                    [b:16]        16/64                                                  | -64(-100.0%)                   
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+7      student_4_weight (Placeholder, Gemm)                  [b:1,c:16]    16/64                                                  | +4(+6.2%)      +17(+100.0%)    Dense_[o][4]       
+       student_4_bias (Placeholder, Gemm)                    [b:1]         1/4                                                    | -4(-100.0%)                    
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+0      observation (Input, )                                 [b:1,c:3]                                                            |                                
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+2      _Mul_output_0 (Eltwise, Mul)                          [b:1,c:3]                       3                      observation   |                -3(-100.0%)     
+                                                                                                             _Constant_output_0   | 
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+3      _student_student_0..m_output_0 (Gemm, Gemm)           [b:1,c:16]                     64                    _Mul_output_0   |                -64(-100.0%)    
+                                                                                                               student_0_weight   | 
+                                                                                                                 student_0_bias   | 
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+4      _student_student_1..h_output_0 (Nonlinearity, Tanh)   [b:1,c:16]                    160   _student_student_0..m_output_0   |                                Nonlinearity_[1]   
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+5      _student_student_2..m_output_0 (Gemm, Gemm)           [b:1,c:16]                    272   _student_student_1..h_output_0   |                -272(-100.0%)   
+                                                                                                               student_2_weight   | 
+                                                                                                                 student_2_bias   | 
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+6      _student_student_3..h_output_0 (Nonlinearity, Tanh)   [b:1,c:16]                    160   _student_student_2..m_output_0   |                                Nonlinearity_[3]   
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+7      torque (Gemm, Gemm)                                   [b:1,c:1]                      17   _student_student_3..h_output_0   |                -17(-100.0%)    
+                                                                                                               student_4_weight   | 
+                                                                                                                 student_4_bias   | 
+------ ----------------------------------------------------- ------------- ------------ ------ -------------------------------- --- -------------- --------------- ------------------ 
+model/c-model: macc=676/673 -3(-0.4%) weights=1,424/1,412 -12(-0.8%) activations=--/128 io=--/0
+
+
+
+Generated C-graph summary
+------------------------------------------------------------------------------------------------------------------------
+model name            : student
+c-name                : studentpendulum
+c-node #              : 5
+c-array #             : 12
+activations size      : 128 (1 segment)
+weights size          : 1412 (1 segment)
+macc                  : 673
+inputs                : ['observation_output']
+outputs               : ['torque_output']
+
+C-Arrays (12)
+------ ------------------------------------------ ----------- ------------------------- ------------- --------- 
+c_id   name (*_array)                             item/size   domain/mem-pool           c-type        comment   
+------ ------------------------------------------ ----------- ------------------------- ------------- --------- 
+0      _student_student_0_Gemm_output_0_bias      16/64       weights/weights           const float             
+1      _student_student_0_Gemm_output_0_output    16/64       activations/**default**   float                   
+2      _student_student_0_Gemm_output_0_weights   48/192      weights/weights           const float             
+3      _student_student_1_Tanh_output_0_output    16/64       activations/**default**   float                   
+4      _student_student_2_Gemm_output_0_bias      16/64       weights/weights           const float             
+5      _student_student_2_Gemm_output_0_output    16/64       activations/**default**   float                   
+6      _student_student_2_Gemm_output_0_weights   256/1024    weights/weights           const float             
+7      _student_student_3_Tanh_output_0_output    16/64       activations/**default**   float                   
+8      observation_output                         3/12        activations/**default**   float         /input    
+9      torque_bias                                1/4         weights/weights           const float             
+10     torque_output                              1/4         activations/**default**   float         /output   
+11     torque_weights                             16/64       weights/weights           const float             
+------ ------------------------------------------ ----------- ------------------------- ------------- --------- 
+
+C-Layers (5)
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+c_id   name (*_layer)                     id   layer_type      macc   rom    tensors                                       shape (array id)   
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+0      _student_student_0_Gemm_output_0   3    Dense           64     256    I: observation_output                         f32(1x3) (8)       
+                                                                             W: _student_student_0_Gemm_output_0_weights   f32(16x3) (2)      
+                                                                             W: _student_student_0_Gemm_output_0_bias      f32(16) (0)        
+                                                                             O: _student_student_0_Gemm_output_0_output    f32(1x16) (1)      
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+1      _student_student_1_Tanh_output_0   4    Nonlinearity    160    0      I: _student_student_0_Gemm_output_0_output    f32(1x16) (1)      
+                                                                             O: _student_student_1_Tanh_output_0_output    f32(1x16) (3)      
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+2      _student_student_2_Gemm_output_0   5    Dense           272    1088   I: _student_student_1_Tanh_output_0_output    f32(1x16) (3)      
+                                                                             W: _student_student_2_Gemm_output_0_weights   f32(16x16) (6)     
+                                                                             W: _student_student_2_Gemm_output_0_bias      f32(16) (4)        
+                                                                             O: _student_student_2_Gemm_output_0_output    f32(1x16) (5)      
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+3      _student_student_3_Tanh_output_0   6    Nonlinearity    160    0      I: _student_student_2_Gemm_output_0_output    f32(1x16) (5)      
+                                                                             O: _student_student_3_Tanh_output_0_output    f32(1x16) (7)      
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+4      torque                             7    Dense           17     68     I: _student_student_3_Tanh_output_0_output    f32(1x16) (7)      
+                                                                             W: torque_weights                             f32(1x16) (11)     
+                                                                             W: torque_bias                                f32(1) (9)         
+                                                                             O: torque_output                              f32(1x1) (10)      
+------ ---------------------------------- ---- --------------- ------ ------ --------------------------------------------- ------------------ 
+
+
+
+Number of operations per c-layer
+------- ------ ----------------------------------------------- ----- -------------- 
+c_id    m_id   name (type)                                       #op           type 
+------- ------ ----------------------------------------------- ----- -------------- 
+0       3      _student_student_0..m_output_0 (Dense)             64   smul_f32_f32 
+1       4      _student_student_1..h_output_0 (Nonlinearity)     160     op_f32_f32 
+2       5      _student_student_2..m_output_0 (Dense)            272   smul_f32_f32 
+3       6      _student_student_3..h_output_0 (Nonlinearity)     160     op_f32_f32 
+4       7      torque (Dense)                                     17   smul_f32_f32 
+------- ------ ----------------------------------------------- ----- -------------- 
+total                                                            673 
+
+Number of operation types
+---------------- ----- ----------- 
+operation type       #           % 
+---------------- ----- ----------- 
+smul_f32_f32       353       52.5% 
+op_f32_f32         320       47.5% 
+
+Complexity report (model)
+------ ---------------------------------- ------------------------- ------------------------- ------ 
+m_id   name                               c_macc                    c_rom                     c_id   
+------ ---------------------------------- ------------------------- ------------------------- ------ 
+3      student_0_weight                   ||||               9.5%   ||||              18.1%   [0]    
+5      student_2_weight                   ||||||||||||||||  40.4%   ||||||||||||||||  77.1%   [2]    
+7      student_4_weight                   |                  2.5%   |                  4.8%   [4]    
+4      _student_student_1_Tanh_output_0   |||||||||         23.8%   |                  0.0%   [1]    
+6      _student_student_3_Tanh_output_0   |||||||||         23.8%   |                  0.0%   [3]    
+------ ---------------------------------- ------------------------- ------------------------- ------ 
+macc=673 weights=1,412 act=128 ram_io=0
+ 
+ Requested memory size by section - "stm32f7" target
+ ------------------------------ ------- -------- ------- ----- 
+ module                            text   rodata    data   bss 
+ ------------------------------ ------- -------- ------- ----- 
+ NetworkRuntime1020_CM7_GCC.a     6,860        0       0     0 
+ studentpendulum.o                  524       40   1,584   140 
+ studentpendulum_data.o              48       16      88     0 
+ lib (toolchain)*                   960       12       0     0 
+ ------------------------------ ------- -------- ------- ----- 
+ RT total**                       8,392       68   1,672   140 
+ ------------------------------ ------- -------- ------- ----- 
+ weights                              0    1,416       0     0 
+ activations                          0        0       0   128 
+ io                                   0        0       0     0 
+ ------------------------------ ------- -------- ------- ----- 
+ TOTAL                            8,392    1,484   1,672   268 
+ ------------------------------ ------- -------- ------- ----- 
+ *  toolchain objects (libm/libgcc*)
+ ** RT AI runtime objects (kernels+infrastructure)
+  
+  Summary - "stm32f7" target
+  ---------------------------------------------------
+               FLASH (ro)      %*   RAM (rw)       % 
+  ---------------------------------------------------
+  RT total         10,132   87.7%      1,812   93.4% 
+  ---------------------------------------------------
+  TOTAL            11,548              1,940         
+  ---------------------------------------------------
+  *  rt/total
+
+
+Generated files (7)
+--------------------------------------------------------------------------------- 
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum_data_params.h   
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum_data_params.c   
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum_data.h          
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum_data.c          
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum_config.h        
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum.h               
+/home/tomnwol/.stm32cubemx/studentpendulum_output/studentpendulum.c               
