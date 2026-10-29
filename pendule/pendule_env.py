@@ -1,18 +1,20 @@
-"""Pendule inversé, même interface que celle attendue par ppo.py.
+"""Pendule inversé. Le contrat (état, action, 20 Hz) est figé dans interface.py.
 
-Observation (3,) : cos(θ), sin(θ), vitesse angulaire.
+Observation brute (3,) : cos(θ), sin(θ), vitesse angulaire non normalisée.
 θ = 0 est la position haute. L'épisode dure 200 pas.
-step(couple) renvoie (observation, récompense, fini).
+step(couple) sature le couple à ±MAX_COUPLE et renvoie (observation, récompense, fini).
 """
 
 import numpy as np
 
+from interface import DT, MAX_COUPLE, VITESSE_MAX
+
 
 class Pendule:
     def __init__(self, seed=0, max_steps=200):
-        self.max_speed = 8.0
-        self.max_torque = 2.0
-        self.dt = 0.05
+        self.max_speed = VITESSE_MAX
+        self.max_torque = MAX_COUPLE
+        self.dt = DT
         self.g = 10.0
         self.m = 1.0
         self.l = 1.0

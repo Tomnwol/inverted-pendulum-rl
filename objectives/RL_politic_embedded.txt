@@ -1,0 +1,8 @@
+1. Reprendre ton pendule et figer l’interface : état en entrée, action en sortie, fréquence de contrôle (par exemple 100 Hz). Garde ta politique PPO float32 comme référence.
+2. Distiller la politique en un petit MLP : l’imiter par apprentissage supervisé sur des trajectoires de ta politique, et vérifier qu’il garde de bonnes performances en simulation.
+3. Quantifier en int8 et mesurer la perte de performance par rapport au float32.
+4. Exporter et intégrer sur la STM32 F756ZG : export ONNX, puis X-CUBE-AI (ou CMSIS-NN si tu écris l’inférence toi-même), avec un premier test sur des entrées fixes, comparé à PyTorch.
+5. Monter la boucle hardware-in-the-loop : le PC simule le pendule et envoie l’état par UART, la carte renvoie l’action, à fréquence fixe.
+6. Mesurer : latence (timer matériel), gigue, flash et RAM, performance en boucle fermée.
+7. Comparer et tester la robustesse : PID contre RL, avec du bruit sur les mesures, et retard de communication.
+8. Finaliser : README clair avec schéma d’architecture, tableau de résultats, courte vidéo de démo, repo propre.

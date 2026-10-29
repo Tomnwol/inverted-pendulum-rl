@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions import Normal
+from interface import EVAL_EPISODES, EVAL_SEED, evaluer as evaluer_politique, prep, reseau_reference
 from pendule_env import Pendule
 
 # --- Algorithme PPO ---
@@ -15,46 +16,23 @@ LR_ACTEUR, LR_CRITIQUE = 3e-4, 1e-3
 ADV_EPS = 1e-8                               # évite une division par zéro quand l'avantage est constant
 # --- Collecte et réseau ---
 N_ENVS, T, N_ITER = 16, 200, 100
-OBS_DIM, HIDDEN = 3, 64
-REWARD_SCALE, VITESSE_MAX = 0.1, 8.0
+REWARD_SCALE = 0.1
 LOG_STD_RANGE = (-2.0, 0.5)
 SEED = 0
 # --- Évaluation ---
-EVAL_EPISODES, EVAL_SEED = 50, 123
 PALIERS = (1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100)
 if len(sys.argv) > 1:
     N_ITER = int(sys.argv[1])                    # python ppo.py 50  -> 50 itérations au lieu de N_ITER
 torch.manual_seed(SEED)
 
-def mlp():
-    return nn.Sequential(
-        nn.Linear(OBS_DIM, HIDDEN), nn.Tanh(),
-        nn.Linear(HIDDEN, HIDDEN), nn.Tanh(),
-        nn.Linear(HIDDEN, 1),
-    )
-
-actor, critic = mlp(), mlp()                
+actor = reseau_reference()
+critic = reseau_reference()                  # même forme, poids indépendants
 log_std = nn.Parameter(torch.zeros(1))       # écart-type appris
 opt = torch.optim.Adam([{"params": list(actor.parameters()) + [log_std], "lr": LR_ACTEUR},
                         {"params": critic.parameters(), "lr": LR_CRITIQUE}])
 
-def prep(obs):                               # vitesse ramenée à ~[-1, 1]
-    # convertit l'observation en tenseur
-    o = torch.tensor(np.array(obs), dtype=torch.float32)
-    o[..., 2] /= VITESSE_MAX
-    return o
-
 def evaluer(n=EVAL_EPISODES):                # politique déterministe (moyenne, sans bruit)
-    env, retours = Pendule(seed=EVAL_SEED), []
-    for _ in range(n):
-        o, total, fini = env.reset(), 0.0, False
-        while not fini:
-            with torch.no_grad():
-                u = actor(prep(o)[None]).item()
-            o, r, fini = env.step(u)
-            total += r
-        retours.append(total)
-    return np.mean(retours)
+    return evaluer_politique(actor, n=n, seed=EVAL_SEED)
 
 envs = [Pendule(seed=i + 1) for i in range(N_ENVS)]
 print(f"iter {0:3d} | éval {evaluer():8.1f} | std action {log_std.exp().item():.2f}")
