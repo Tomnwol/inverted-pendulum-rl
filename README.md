@@ -28,6 +28,32 @@ récompense = −(écart angulaire² + 0,1·vitesse² + 0,001·couple²).
 | `ppo.py` | PPO : acteur-critique, GAE, ratio clippé, 16 environnements en parallèle |
 | `simulation_pendule.py` | Visualisation Tkinter d'une politique entraînée |
 
+`pendule/` s'arrête à cette comparaison. La PPO y est autonome : elle ne dépend pas du dossier suivant.
+
+## Politique embarquée — `embedded/`
+
+Reprend la PPO comme référence, puis la distille et la quantifie. Le code de ce dossier est en anglais. Les scripts se lancent depuis `embedded/`. Les poids sont dans `embedded/weights/`.
+
+| Fichier | Contenu |
+|---|---|
+| `policy_contract.py` | Contrat figé : état, couple, 20 Hz, chargement des poids |
+| `pendulum_env.py` | Même pendule, branché sur ce contrat |
+| `ppo.py` | PPO de référence, enregistre `weights/actor.pt` |
+| `distill.py` | Élève `3 → 16 → 16 → 1`, enregistre `weights/student.pt` |
+| `quantize.py` | Élève en int8, enregistre `weights/student_int8.pt` |
+| `export_onnx.py` | Élève float32 en ONNX, enregistre `weights/student.onnx` |
+| `simulation.py` | Visualisation de la référence, de l'élève ou de l'int8 |
+
+```bash
+python ppo.py
+python distill.py
+python quantize.py
+python export_onnx.py
+python simulation.py
+python simulation.py --student
+python simulation.py --int8
+```
+
 ## Les bases — `bases/`
 
 ### `01_numpy/` : tout à la main

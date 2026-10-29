@@ -1,8 +1,7 @@
 """Affiche le pendule conduit par une politique enregistrée.
 
-    python simulation_pendule.py         acteur PPO (pendule_acteur.pt)
-    python simulation_pendule.py --eleve élève distillé (pendule_eleve.pt)
-    python simulation_pendule.py --ch3   recherche aléatoire (ch3_poids.npy)
+    python simulation_pendule.py        acteur PPO (pendule_acteur.pt)
+    python simulation_pendule.py --ch3  recherche aléatoire (ch3_poids.npy)
 """
 
 import subprocess
@@ -11,21 +10,35 @@ from pathlib import Path
 
 import numpy as np
 import tkinter as tk
+import torch
+import torch.nn as nn
 
-from interface import FREQUENCE_HZ, charger_eleve, charger_reference, politique as action_reference
 from pendule_env import Pendule
 from ch3_recherche_aleatoire import politique_depuis
 
+POIDS = Path(__file__).with_name("pendule_acteur.pt")
 POIDS_CH3 = Path(__file__).with_name("ch3_poids.npy")
 MODE_CH3 = "--ch3" in sys.argv
-MODE_ELEVE = "--eleve" in sys.argv
-if MODE_CH3:
-    TITRE = "Pendule recherche aléatoire"
-elif MODE_ELEVE:
-    TITRE = "Pendule distillé"
-else:
-    TITRE = "Pendule entraîné"
-PERIODE_MS = int(1000 / FREQUENCE_HZ)
+TITRE = "Pendule recherche aléatoire" if MODE_CH3 else "Pendule entraîné"
+
+
+def mlp():
+    return nn.Sequential(nn.Linear(3, 64), nn.Tanh(), nn.Linear(64, 64), nn.Tanh(), nn.Linear(64, 1))
+
+
+def prep(obs):
+    o = torch.tensor(np.array(obs), dtype=torch.float32)
+    o[..., 2] /= 8
+    return o
+
+
+def charger():
+    if not POIDS.exists():
+        raise SystemExit("Pas de poids enregistrés. Lance d'abord : python ppo.py")
+    actor = mlp()
+    actor.load_state_dict(torch.load(POIDS, weights_only=True))
+    actor.eval()
+    return actor
 
 
 def charger_ch3():
@@ -39,14 +52,11 @@ def main():
         politique = charger_ch3()
         def couple(o):
             return float(politique(o))
-    elif MODE_ELEVE:
-        eleve = charger_eleve()
-        def couple(o):
-            return action_reference(eleve, o)
     else:
-        actor = charger_reference()
+        actor = charger()
         def couple(o):
-            return action_reference(actor, o)
+            with torch.no_grad():
+                return actor(prep(o)[None]).item()
 
     env = Pendule(seed=123)
     etat = {"obs": env.reset(), "total": 0.0, "episode": 1, "trace": []}
@@ -86,7 +96,7 @@ def main():
 
         if fini:
             etat.update(obs=env.reset(), total=0.0, episode=etat["episode"] + 1, trace=[])
-        root.after(PERIODE_MS, dessiner)
+        root.after(50, dessiner)
 
     def devant():
         root.deiconify()
@@ -102,8 +112,8 @@ def main():
             pass
         root.after(2500, lambda: root.attributes("-topmost", False))
 
-    print(f"Fenêtre ouverte : {TITRE}", flush=True)
-    root.after(PERIODE_MS, dessiner)
+    print("Fenêtre ouverte : Pendule entraîné", flush=True)
+    root.after(50, dessiner)
     root.after(200, devant)
     root.mainloop()
 
