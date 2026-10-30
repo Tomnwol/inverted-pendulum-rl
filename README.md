@@ -1,12 +1,12 @@
 # Pendule inversé, de l'apprentissage au STM32
 
-Un réseau apprend à redresser un pendule, puis un élève assez petit pour tenir sur une Nucleo-F756ZG fait le même travail. Le PC simule la physique. La carte, à 20 Hz, renvoie le couple.
+Un réseau apprend à redresser un pendule, puis un élève assez petit pour tenir sur une **Nucleo-F756ZG** fait le même travail. Le PC simule la physique. La carte, à 20 Hz, renvoie le couple.
 
 
 
 ![Démo du pendule sur la carte](docs/demo.jpg)
 
-Vidéo : ++[https://youtu.be/hBLaUM1HigA?si=2EWYkwLywpu2pqIw](https://youtu.be/hBLaUM1HigA?si=2EWYkwLywpu2pqIw)++
+[Vidéo complète](https://youtu.be/hBLaUM1HigA?si=2EWYkwLywpu2pqIw)
 
 ## Résultats
 
