@@ -22,7 +22,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "stdio.h"
 #include "studentpendulum.h"
 #include "studentpendulum_data.h"
 /* USER CODE END Includes */
@@ -89,22 +88,12 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-/* Same four raw observations as embedded/export_onnx.py.
- * Each row is (cos θ, sin θ, θ̇). The network divides θ̇ by 8 itself. */
-static const float k_observations[4][3] = {
-  {0.3f, -0.4f, 4.0f},
-  {1.0f, 0.0f, 0.0f},
-  {0.0f, 1.0f, -8.0f},
-  {-0.7f, 0.7f, 2.5f},
-};
-
-/* policy() on the PC, same weights, float32. */
-static const float k_expected_torque[4] = {
-  -0.68759882f,
-  0.03163822f,
-  1.00200880f,
-  2.49241948f,
-};
+/* PC -> board: 0xA5, three little-endian float32 (cos θ, sin θ, θ̇), XOR.
+ * Board -> PC: 0x5A, torque float32, cycle count uint32, XOR of those 8 bytes.
+ * The cycle count is the network time, from the DWT counter at 216 MHz.
+ * The ±2 clip stays on the PC, in Pendulum.step. */
+#define HIL_OBS_MAGIC    0xA5U
+#define HIL_TORQUE_MAGIC 0x5AU
 
 /* Working memory of the network. Weights stay in flash. */
 AI_ALIGNED(4)
@@ -115,23 +104,6 @@ static ai_handle k_network = AI_HANDLE_NULL;
 static void uart_print(const char *text)
 {
   HAL_UART_Transmit(&huart3, (uint8_t *)text, (uint16_t)strlen(text), HAL_MAX_DELAY);
-}
-
-static void uart_print_float(float value)
-{
-  char digits[24];
-  int negative = value < 0.0f;
-  int micros;
-
-  if (negative) {
-    value = -value;
-  }
-  micros = (int)(value * 1000000.0f + 0.5f);
-  snprintf(digits, sizeof digits, "%s%d.%06d",
-           negative ? "-" : "+",
-           micros / 1000000,
-           micros % 1000000);
-  uart_print(digits);
 }
 
 static void network_init(void)
@@ -145,6 +117,12 @@ static void network_init(void)
     uart_print("network init failed\r\n");
     Error_Handler();
   }
+
+  /* Cortex-M7 cycle counter. Unlock, then enable. */
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->LAR = 0xC5ACCE55U;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
 static float network_torque(const float observation[3])
@@ -164,37 +142,76 @@ static float network_torque(const float observation[3])
 
   batches = ai_studentpendulum_run(k_network, input, output);
   if (batches != 1) {
-    uart_print("network run failed\r\n");
     Error_Handler();
   }
   return out_data[0];
 }
 
-static void fixed_input_test(void)
+static uint8_t hil_checksum(const uint8_t *data, uint16_t length)
 {
-  int i;
+  uint8_t sum = 0;
+  uint16_t i;
 
-  uart_print("fixed-input test, studentpendulum\r\n");
-  for (i = 0; i < 4; i++) {
-    float torque = network_torque(k_observations[i]);
-    float gap = torque - k_expected_torque[i];
+  for (i = 0; i < length; i++) {
+    sum ^= data[i];
+  }
+  return sum;
+}
 
-    if (gap < 0.0f) {
-      gap = -gap;
-    }
-    uart_print("obs ");
-    uart_print_float(k_observations[i][0]);
-    uart_print(" ");
-    uart_print_float(k_observations[i][1]);
-    uart_print(" ");
-    uart_print_float(k_observations[i][2]);
-    uart_print(" torque ");
-    uart_print_float(torque);
-    uart_print(" expected ");
-    uart_print_float(k_expected_torque[i]);
-    uart_print(" gap ");
-    uart_print_float(gap);
-    uart_print(gap < 0.001f ? " ok\r\n" : " CHECK\r\n");
+/* Unplug can leave the UART in an error state. Re-init so the next plug
+ * is answered without a manual reset. A timeout just drops the frame. */
+static void uart_recover(void)
+{
+  HAL_UART_Abort(&huart3);
+  HAL_UART_DeInit(&huart3);
+  MX_USART3_UART_Init();
+}
+
+static int hil_read(uint8_t *data, uint16_t length)
+{
+  HAL_StatusTypeDef status = HAL_UART_Receive(&huart3, data, length, 100);
+
+  if (status == HAL_OK) {
+    return 1;
+  }
+  if (status != HAL_TIMEOUT) {
+    uart_recover();
+  }
+  return 0;
+}
+
+/* One control tick. A bad byte is dropped so the next frame can resync. */
+static void hil_step(void)
+{
+  uint8_t marker;
+  uint8_t payload[12];
+  uint8_t check;
+  float observation[3];
+  float torque;
+  uint32_t cycles;
+  uint8_t reply[10];
+
+  if (!hil_read(&marker, 1) || marker != HIL_OBS_MAGIC) {
+    return;
+  }
+  if (!hil_read(payload, sizeof payload) || !hil_read(&check, 1)) {
+    return;
+  }
+  if (check != hil_checksum(payload, sizeof payload)) {
+    return;
+  }
+
+  memcpy(observation, payload, sizeof observation);
+  cycles = DWT->CYCCNT;
+  torque = network_torque(observation);
+  cycles = DWT->CYCCNT - cycles;
+
+  reply[0] = HIL_TORQUE_MAGIC;
+  memcpy(&reply[1], &torque, sizeof torque);
+  memcpy(&reply[5], &cycles, sizeof cycles);
+  reply[9] = hil_checksum(&reply[1], 8);
+  if (HAL_UART_Transmit(&huart3, reply, sizeof reply, 20) != HAL_OK) {
+    uart_recover();
   }
 }
 
@@ -255,8 +272,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    fixed_input_test();
-    HAL_Delay(2000);
+    hil_step();
   }
   /* USER CODE END 3 */
 }

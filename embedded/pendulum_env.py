@@ -11,7 +11,7 @@ from policy_contract import DT, MAX_SPEED, MAX_TORQUE
 
 
 class Pendulum:
-    def __init__(self, seed=0, max_steps=200):
+    def __init__(self, seed=0, max_steps=200, damping=0.0):
         self.max_speed = MAX_SPEED
         self.max_torque = MAX_TORQUE
         self.dt = DT
@@ -19,6 +19,10 @@ class Pendulum:
         self.m = 1.0
         self.l = 1.0
         self.max_steps = max_steps
+        # Viscous friction, in 1/s, and only while the bob is below the
+        # horizontal. Zero keeps the training plant unchanged. Above the
+        # horizontal the upright position stays unstable, so a tilt falls.
+        self.damping = damping
         self.rng = np.random.default_rng(seed)
         self.state = np.zeros(2)
         self.steps = 0
@@ -37,7 +41,13 @@ class Pendulum:
         theta_norm = ((theta + np.pi) % (2 * np.pi)) - np.pi
         cost = theta_norm**2 + 0.1 * theta_dot**2 + 0.001 * torque**2
 
-        new_theta_dot = theta_dot + (3 * self.g / (2 * self.l) * np.sin(theta) + 3.0 / (self.m * self.l**2) * torque) * self.dt
+        friction = self.damping * theta_dot if np.cos(theta) < 0.0 else 0.0
+        acceleration = (
+            3 * self.g / (2 * self.l) * np.sin(theta)
+            + 3.0 / (self.m * self.l**2) * torque
+            - friction
+        )
+        new_theta_dot = theta_dot + acceleration * self.dt
         new_theta_dot = float(np.clip(new_theta_dot, -self.max_speed, self.max_speed))
         self.state = np.array([theta + new_theta_dot * self.dt, new_theta_dot])
         self.steps += 1

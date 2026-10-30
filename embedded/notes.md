@@ -31,3 +31,25 @@ Le 30 octobre 2026, le code généré tourne sur la Nucleo. `firmware/Core/Src/m
 | −0,7, +0,7, +2,5 | +2,492419 | +2,492420 | 0 |
 
 Les quatre lignes finissent par `ok`. À six décimales, la carte et le PC donnent le même couple. Sur la dernière ligne, l'attendu affiché est arrondi à `+2,492420` et le couple carte à `+2,492419` ; l'écart réel reste sous un demi-millionième, donc l'affichage le montre à `0`. Le réseau float32 embarqué reproduit la politique du PC sur ces entrées.
+
+## Latence et gigue
+
+Mesure du 30 octobre 2026, boucle UART à 20 Hz (pas de 50 ms), fenêtre des 200 derniers pas. La gigue est l'écart entre le pas le plus rapide et le plus lent de cette fenêtre. Le frottement de la démo ne joue pas : ce sont des durées.
+
+| | Moyenne | Gigue |
+|---|---:|---:|
+| Liaison, PC | 2,90 ms | 1,25 ms |
+| Réseau, carte | 48 µs | 2 µs |
+
+La liaison est le temps entre l'envoi de l'état et la réception du couple, USB compris. Le réseau est le temps de calcul seul, lu sur le compteur de cycles du Cortex-M7 à 216 MHz. Sur 2,90 ms, la carte n'en occupe que 48 µs. La gigue de 1,25 ms est celle du PC et de l'USB. Le calcul sur la carte varie de 2 µs. Les deux restent petits devant les 50 ms du pas de contrôle.
+
+## PID contre l'élève
+
+Comparaison du 30 octobre 2026, `pid/tune.py`, 50 épisodes, graine 123, sans frottement. Le couple PID est borné à ±2.
+
+| | Réglage | Retour moyen |
+|---|---|---:|
+| PID | Kp 18,5, Ki 1,1, Kd 5,6 | −997 |
+| Élève float32 | réseau 3 → 16 → 16 → 1 | environ −150 |
+
+Le PID tient un petit écart en haut. Il ne remonte pas quand l'épisode commence trop bas, parce que le couple saturé ne suffit plus à rattraper l'angle. Le réglage améliore un PID brut (autour de −1060) sans combler l'écart avec le réseau, qui a appris le rattrapage.
